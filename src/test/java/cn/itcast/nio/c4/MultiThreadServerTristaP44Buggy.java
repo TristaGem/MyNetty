@@ -5,42 +5,29 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
 import java.util.Iterator;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
 /**
- * P44 Note
- * Since we got selector.wakeup() which could wake up the selector anytime,
- * we don't need queue at all.
+ * With this version, I have commented out several logging sentence, like,
+ * line 87, 89, 97
+ * I have run into some issues that I can't explain, which I believe that HAS something to do with java's compilation,
+ * they reordered some line which makes selector blocking on the select method, and can't wake up to register with the socketchannel
  *
- *
- * 💡 select 何时不阻塞
- *
- * A. 事件发生时
- *            1. *客户端发起连接请求，会触发 accept 事件*
- *
- *            2. *客户端发送数据过来*，**客户端正常、异常关闭时，都会触发 read 事件**，另外如果**发送的数据大于 buffer 缓冲区，会触发多次读取事件**
- *
- *            3. **channel 可写**，会触发 write 事件
- *
- *      4. 在 linux 下 nio bug 发生时
- *
- * B.调用 selector.wakeup()
- *
- * C. 调用 selector.close()
- *
- * D. selector 所在线程 interrupt
+ * Running Log:
+ * /Library/Java/JavaVirtualMachines/amazon-corretto-8.jdk/Contents/Home/bin/java -Dvisualvm.id=164253801053083 -javaagent:/Applications/IntelliJ IDEA.app/Contents/lib/idea_rt.jar=57522:/Applications/IntelliJ IDEA.app/Contents/bin -Dfile.encoding=UTF-8 -classpath /Library/Java/JavaVirtualMachines/amazon-corretto-8.jdk/Contents/Home/jre/lib/charsets.jar:/Library/Java/JavaVirtualMachines/amazon-corretto-8.jdk/Contents/Home/jre/lib/ext/cldrdata.jar:/Library/Java/JavaVirtualMachines/amazon-corretto-8.jdk/Contents/Home/jre/lib/ext/dnsns.jar:/Library/Java/JavaVirtualMachines/amazon-corretto-8.jdk/Contents/Home/jre/lib/ext/jaccess.jar:/Library/Java/JavaVirtualMachines/amazon-corretto-8.jdk/Contents/Home/jre/lib/ext/jfxrt.jar:/Library/Java/JavaVirtualMachines/amazon-corretto-8.jdk/Contents/Home/jre/lib/ext/localedata.jar:/Library/Java/JavaVirtualMachines/amazon-corretto-8.jdk/Contents/Home/jre/lib/ext/nashorn.jar:/Library/Java/JavaVirtualMachines/amazon-corretto-8.jdk/Contents/Home/jre/lib/ext/sunec.jar:/Library/Java/JavaVirtualMachines/amazon-corretto-8.jdk/Contents/Home/jre/lib/ext/sunjce_provider.jar:/Library/Java/JavaVirtualMachines/amazon-corretto-8.jdk/Contents/Home/jre/lib/ext/sunpkcs11.jar:/Library/Java/JavaVirtualMachines/amazon-corretto-8.jdk/Contents/Home/jre/lib/ext/zipfs.jar:/Library/Java/JavaVirtualMachines/amazon-corretto-8.jdk/Contents/Home/jre/lib/jce.jar:/Library/Java/JavaVirtualMachines/amazon-corretto-8.jdk/Contents/Home/jre/lib/jfr.jar:/Library/Java/JavaVirtualMachines/amazon-corretto-8.jdk/Contents/Home/jre/lib/jfxswt.jar:/Library/Java/JavaVirtualMachines/amazon-corretto-8.jdk/Contents/Home/jre/lib/jsse.jar:/Library/Java/JavaVirtualMachines/amazon-corretto-8.jdk/Contents/Home/jre/lib/management-agent.jar:/Library/Java/JavaVirtualMachines/amazon-corretto-8.jdk/Contents/Home/jre/lib/resources.jar:/Library/Java/JavaVirtualMachines/amazon-corretto-8.jdk/Contents/Home/jre/lib/rt.jar:/Volumes/workplace/netty-demo/target/test-classes:/Volumes/workplace/netty-demo/target/classes:/Users/tosavana/.m2/repository/io/netty/netty-all/4.1.39.Final/netty-all-4.1.39.Final.jar:/Users/tosavana/.m2/repository/org/projectlombok/lombok/1.16.18/lombok-1.16.18.jar:/Users/tosavana/.m2/repository/com/google/code/gson/gson/2.8.5/gson-2.8.5.jar:/Users/tosavana/.m2/repository/com/google/guava/guava/19.0/guava-19.0.jar:/Users/tosavana/.m2/repository/ch/qos/logback/logback-classic/1.2.3/logback-classic-1.2.3.jar:/Users/tosavana/.m2/repository/ch/qos/logback/logback-core/1.2.3/logback-core-1.2.3.jar:/Users/tosavana/.m2/repository/org/slf4j/slf4j-api/1.7.25/slf4j-api-1.7.25.jar:/Users/tosavana/.m2/repository/com/google/protobuf/protobuf-java/3.11.3/protobuf-java-3.11.3.jar cn.itcast.nio.c4.MultiThreadServerTristaP44
+ * 18:13:31 [DEBUG] [main] c.i.n.c.MultiThreadServerTristaP44 - sscKey:sun.nio.ch.SelectionKeyImpl@64cee07
+ * 18:13:34 [DEBUG] [main] c.i.n.c.MultiThreadServerTristaP44 - key: sun.nio.ch.SelectionKeyImpl@64cee07
+ * 18:13:34 [DEBUG] [main] c.i.n.c.MultiThreadServerTristaP44 - before register READ event with worker's selector.....
  */
 @Slf4j
-public class MultiThreadServerTristaP44 {
+public class MultiThreadServerTristaP44Buggy {
 
     public static void main(String[] args) throws IOException {
         // 1. 创建 selector, 管理多个 channel

@@ -13,7 +13,7 @@ public class Client {
         sc.connect(new InetSocketAddress("localhost", 8080));
         SocketAddress address = sc.getLocalAddress();
         System.out.println("waiting...");
-        sc.write(Charset.defaultCharset().encode("hi"));
+        sc.write(Charset.defaultCharset().encode("hi from " + address));
         sc.close();
     }
 }
